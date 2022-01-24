@@ -1,53 +1,110 @@
 package de.fellowork.mayumi.practice.millerrabin;
 
+import java.math.BigInteger;
 import java.util.Random;
 
 public class MillerRabin {
 
     /**
-     * find out if input (scanned) is prime number
+     * find out if input is prime number
      *
      * @return randomNumber if it is detected as primeNumber
      */
 
+    public boolean isPrimeNumber(int primeCandidate, int checkIterations) {
 
-    public boolean isPrimeNumber() {
-        //GetUserInput checkIfPrime = new GetUserInput();
+        if (primeCandidateIsPerDefinitionNotPrime(primeCandidate)) {
+            return false;
+        }
+        if (primeCandidateIsPerDefinitionPrime(primeCandidate)) {
+            return true;
+        }
+        if (primeCandidateIsEven(primeCandidate)) {
+            return false;
+        }
+        return doMillerRabinTest(primeCandidate, checkIterations);
 
-        int randomNumber= getRandomNumberToCheckIfPrime();
+    }
 
-        int d = randomNumber - 1;
-        int counter = 0;
+    private boolean primeCandidateIsPerDefinitionNotPrime(int primeCandidate) {
+        return primeCandidate < 2;
+    }
 
-        while (d % 2 == 0) {
-            d = d / 2;
-            counter++;
+    private boolean primeCandidateIsPerDefinitionPrime(int primeCandidate) {
+        return primeCandidate == 2 || primeCandidate == 3;
+    }
 
-            Random random = new Random();
-            int checker = random.nextInt(2, randomNumber - 1);
-            int x = (int) ((Math.pow(checker, d)) % randomNumber);
+    private boolean primeCandidateIsEven(int primeCandidate) {
+        return primeCandidate % 2 == 0;
+    }
 
-            if (x == 1 || x == (randomNumber - 1)) {
-                return true;
-            }
-            while (counter > 1) {
-                x = (x * x) % randomNumber;
-                if (x == 1) {
-                    return false;
-                } else if (x == (randomNumber - 1)) {
+    private boolean doMillerRabinTest(int primeCandidate, int checkIterations) {
+
+        for (int i = 0; i < checkIterations; i++) {
+
+            MillerRabinExponent exponent = calculateExponents(primeCandidate);
+            int randomChecker = createRandomChecker(primeCandidate);
+            boolean isPrime = false;
+
+            for (int numberOfExponents = 0; numberOfExponents < exponent.getExponentIterations(); numberOfExponents++) {
+
+                int resultToCheck = createResultToCheck(primeCandidate, exponent.getExponent(), randomChecker);
+                isPrime = isProbablyPrime(resultToCheck, primeCandidate);
+
+                if (firstResultToCheckIsOne(numberOfExponents, resultToCheck)) {
                     return true;
                 }
-                counter--;
+                if (isPrime) {
+                    break;
+                }
+                exponent.multiplyExponent(2);
             }
-
+            if (!isPrime) {
+                return false;
+            }
         }
-        return false;
+        return true;
     }
 
-    public int getRandomNumberToCheckIfPrime() {
+    public MillerRabinExponent calculateExponents(int primeCandidate) {
+
+        int exponent = primeCandidate - 1;
+        int exponentIterations = 0;
+
+        while (exponentIsEven(exponent)) {
+            exponent = exponent / 2;
+            exponentIterations += 1;
+        }
+        return new MillerRabinExponent(exponent, exponentIterations);
+    }
+
+    private boolean exponentIsEven(int exponent) {
+        return exponent % 2 == 0;
+    }
+
+    public int createRandomChecker(int primeCandidate) {
+
         Random random = new Random();
-        int randomNumber = random.nextInt(2, 200);
-        return randomNumber;
+        return random.nextInt(2, primeCandidate - 2);
     }
-}
 
+    public int createResultToCheck(int primeCandidate, int exponent, int randomCheckNumber) {
+
+        BigInteger valueOfPrimeCandidate = BigInteger.valueOf(primeCandidate);
+        BigInteger valueOfRandomCheckNumber = BigInteger.valueOf(randomCheckNumber);
+
+        return valueOfRandomCheckNumber.pow(exponent)
+                .mod(valueOfPrimeCandidate)
+                .intValue();
+    }
+
+    private boolean isProbablyPrime(int resultToCheck, int primeCandidate) {
+        return resultToCheck == primeCandidate - 1;
+    }
+
+    private boolean firstResultToCheckIsOne(int j, int resultToCheck) {
+        return resultToCheck == 1 && j == 0;
+    }
+
+
+}
